@@ -1,0 +1,7 @@
+flask==2.3.3
+flask-pymongo==2.3.0
+python-dotenv==1.0.0
+shortuuid==1.0.11
+gunicorn==21.2.0
+pymongo==4.5.0
+python-dateutil==2.8.2

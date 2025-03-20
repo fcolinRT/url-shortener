@@ -1,0 +1,128 @@
+<!-- templates/index.html -->
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="card">
+  <div class="card-body">
+    <form action="/shorten" method="POST">
+      <div class="mb-3">
+        <label for="original_url" class="form-label">Enter a URL to shorten</label>
+        <input type="url" class="form-control" id="original_url" name="original_url" 
+              placeholder="https://example.com" required>
+      </div>
+      <button type="submit" class="btn btn-primary">Shorten URL</button>
+    </form>
+  </div>
+</div>
+
+{% if short_url %}
+  <div class="alert alert-success mt-3">
+    <h4>Success!</h4>
+    <p>Original URL: {{ original_url }}</p>
+    <p>Shortened URL: <a href="{{ short_url }}" target="_blank">{{ short_url }}</a></p>
+    <button class="btn btn-sm btn-outline-secondary copy-btn" data-clipboard-text="{{ short_url }}">Copy to clipboard</button>
+  </div>
+{% endif %}
+
+{% if error %}
+  <div class="alert alert-danger mt-3">
+    <p>{{ error }}</p>
+  </div>
+{% endif %}
+
+<div class="url-list">
+  <h2>Your URLs</h2>
+  <div class="table-responsive">
+    <table class="table table-striped" id="urlTable">
+      <thead>
+        <tr>
+          <th>Original URL</th>
+          <th>Short URL</th>
+          <th>Created</th>
+          <th>Clicks</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- URLs will be loaded here via JavaScript -->
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/clipboard@2.0.8/dist/clipboard.min.js"></script>
+<script>
+  // Load the list of URLs from the API
+  document.addEventListener('DOMContentLoaded', async () => {
+    try {
+      const response = await fetch('/api/urls');
+      const urls = await response.json();
+      
+      const tableBody = document.querySelector('#urlTable tbody');
+      tableBody.innerHTML = '';
+      
+      urls.forEach(url => {
+        const shortUrl = `${window.location.origin}/${url.short_code}`;
+        const row = document.createElement('tr');
+        
+        // Format date
+        const date = new Date(url.created_at);
+        const formattedDate = date.toLocaleDateString();
+        
+        row.innerHTML = `
+          <td><a href="${url.original_url}" target="_blank">${truncateUrl(url.original_url)}</a></td>
+          <td><a href="${shortUrl}" target="_blank">${shortUrl}</a></td>
+          <td>${formattedDate}</td>
+          <td>${url.clicks}</td>
+          <td>
+            <button class="btn btn-sm btn-outline-primary copy-btn" data-clipboard-text="${shortUrl}">Copy</button>
+            <button class="btn btn-sm btn-danger delete-btn" data-code="${url.short_code}">Delete</button>
+          </td>
+        `;
+        
+        tableBody.appendChild(row);
+      });
+      
+      // Initialize clipboard.js
+      new ClipboardJS('.copy-btn');
+      
+      // Add event listeners to delete buttons
+      document.querySelectorAll('.delete-btn').forEach(btn => {
+        btn.addEventListener('click', deleteUrl);
+      });
+      
+    } catch (error) {
+      console.error('Error loading URLs:', error);
+    }
+  });
+  
+  // Delete URL function
+  async function deleteUrl(e) {
+    const shortCode = e.target.getAttribute('data-code');
+    
+    if (confirm('Are you sure you want to delete this URL?')) {
+      try {
+        const response = await fetch(`/api/urls/${shortCode}`, {
+          method: 'DELETE'
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+          // Reload the page to update the URL list
+          window.location.reload();
+        }
+      } catch (error) {
+        console.error('Error deleting URL:', error);
+      }
+    }
+  }
+  
+  // Helper function to truncate long URLs
+  function truncateUrl(url) {
+    return url.length > 50 ? url.substring(0, 50) + '...' : url;
+  }
+</script>
+{% endblock %}

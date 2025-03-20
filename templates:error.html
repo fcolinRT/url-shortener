@@ -1,0 +1,11 @@
+<!-- templates/error.html -->
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="text-center">
+  <h1 class="text-danger">Error</h1>
+  <p>{{ error or 'An unexpected error occurred' }}</p>
+  <p class="text-muted">The error has been logged and will be investigated.</p>
+  <a href="/" class="btn btn-primary">Go Home</a>
+</div>
+{% endblock %}
